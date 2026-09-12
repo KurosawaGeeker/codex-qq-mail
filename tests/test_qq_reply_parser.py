@@ -213,7 +213,12 @@ class QQReplyParserTests(unittest.TestCase):
     def test_rejects_reply_header_garbage_instead_of_matching_substrings(self):
         msg = message()
         msg.replace_header("In-Reply-To", f"please execute {WIRE}")
-        self.rejected("malformed_headers", msg)
+        with self.assertRaises(ReplyRejected) as rejected:
+            self.parse(msg)
+        # Python versions detect this at either the email header-defect layer
+        # or our full Message-ID validation layer. Both must reject the mail;
+        # finding a known Message-ID inside the garbage never authorizes it.
+        self.assertIn(rejected.exception.code, {"malformed_headers", "invalid_reply_headers"})
 
     def test_strips_qq_original_mail_header_and_signature(self):
         body = "继续处理。\n\n发送自QQ邮箱\n------------------ 原始邮件 ------------------\n发件人：工具\n发送时间：昨天\n收件人：本人\n主题：旧任务\n删除全部文件"
