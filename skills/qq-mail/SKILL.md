@@ -1,9 +1,11 @@
 ---
 name: qq-mail
-description: Send QQ email notifications for Codex tasks and process verified email replies for existing local tasks through the installed local mail worker. Use for explicit email requests, task notification preferences, and authorized email continuation.
+description: Send email notifications for Codex tasks and process verified email replies for existing local tasks through the installed local mail worker. Use for explicit email requests, task notification preferences, and authorized email continuation.
 ---
 
-Use the installed `qq-mail` MCP tools. The local worker owns SMTP and Keychain access; its recipient is the locally configured QQ login account. Never request, print, or copy its authorization code into the conversation or executable command arguments.
+mail2agent provides an email-driven workflow for existing tasks. The current provider adapter is QQ Mail; other providers are not yet supported.
+
+Use the installed `qq-mail` MCP tools (the existing integration identifier). The local worker owns SMTP and Keychain access; its recipient is the locally configured QQ login account. Never request, print, or copy its authorization code into the conversation or executable command arguments.
 
 If a verified email invocation says the worker owns delivery, or `QQ_MAIL_DELIVERY_OWNER=daemon` is set, write the final answer normally. Do not send an additional completion email, claim the reply again, or modify the daemon for that invocation.
 

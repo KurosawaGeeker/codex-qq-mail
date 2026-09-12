@@ -1,6 +1,6 @@
-# Codex QQ Mail
+# mail2agent
 
-**让 QQ 邮件接回你正在使用的 Codex 桌面任务。**
+**用邮件远程继续你的 Codex 桌面任务。**
 
 在 Mac 上发起任务，保持电脑清醒、联网、Codex App 打开。任务完成后收到邮件；直接回复那封邮件，Codex 在原任务中继续执行，再把结果回到同一邮件串。
 
@@ -18,45 +18,40 @@
 
 ```mermaid
 flowchart LR
-    Reply[回复任务通知邮件] --> Verify[QQ 已发送邮件校验]
+    Reply[回复任务通知邮件] --> Verify[邮箱适配器验证回复]
     Verify --> Queue[已有任务的执行队列]
     Queue --> Shared[原生 Codex App-server]
     App[Codex App 保持打开] <--> Shared
     Shared --> Result[结果回到同一邮件串]
 ```
 
-## 安装
+## 安装与邮箱适配器
 
-需要 macOS、Python **3.11+**、已经登录的 Codex App，以及开启 IMAP/SMTP 的 QQ 邮箱。建议 Python **3.14+**，可使用 IMAP IDLE；较旧 Python 使用普通代码轮询，同样不调用模型。
-
-本项目的原生集成测试使用 Codex bundled CLI **0.153.4**。连接使用实验性的 App-server 协议，升级 App 后应重新检查兼容性。
+需要 macOS、Python **3.11+** 和已登录的 Codex App。先克隆项目，再按对应适配器的说明配置邮箱：
 
 ```sh
-git clone https://github.com/KurosawaGeeker/codex-qq-mail.git
-cd codex-qq-mail
-python3 scripts/install.py --account you@qq.com --register-mcp --dry-run
+git clone https://github.com/KurosawaGeeker/mail2agent.git
+cd mail2agent
 ```
 
-把 `you@qq.com` 换成自己的 QQ 登录地址。先查看计划，确认无冲突，再去掉 `--dry-run` 安装：
+| 邮箱适配器 | 当前状态 | 配置说明 |
+| --- | --- | --- |
+| QQ Mail | 已实现并完成真实邮件往返验证 | [安装与配置](docs/providers/qq.md) |
+| 其他邮箱平台 | 待适配 | 尚未提供支持 |
 
-```sh
-python3 scripts/install.py --account you@qq.com --register-mcp
-```
+项目按邮箱平台中立的方向组织：任务通知、回复验证、执行队列和结果回传构成统一工作流；账号认证、文件夹及邮件头差异由适配器处理。当前实现仍使用首个适配器，支持范围以上表为准。
 
-安装器建立独立 Python 环境、安装 Skill 和 MCP、配置本地启动服务。不会发邮件、运行模型或自动启用任务。已有安装、账户状态或自定义 CLI 设置会被保护，不会直接覆盖。
+安装器提供 dry-run，建立独立运行环境、安装 Skill 和 MCP、配置本地启动服务。已有安装、账户状态或自定义 CLI 设置会被保护。
 
-随后完成两步：
+完成正在执行的任务后，首次重开 App 一次以加载共享连接。之后远程使用时保持 App 打开即可。凭据通过 macOS Keychain 配置，不放进命令、`.env` 或聊天。
 
-1. 用 **钥匙串访问**创建通用密码项目：名称为 `codex-qq-smtp-auth-code`，账户为安装时填写的 QQ 地址，密码为 QQ 的 IMAP/SMTP 授权码。直接在钥匙串界面填写，勿放进命令、`.env` 或聊天。
-2. 完成正在执行的任务后，**首次重开 Codex App 一次**，加载新连接。之后远程使用时保持 App 打开即可，每次邮件交互无需重开。
-
-详见 [安装、配置与卸载](docs/install.md)。本项目不会修改 App 二进制、删除任务锁或绕过 App 的进程授权。
+详见 [安装与验收](docs/install.md)。原生集成测试使用 Codex bundled CLI **0.153.4**；App-server 协议仍是实验性的，升级 App 后应检查兼容性。
 
 ## 使用
 
 在你手动创建的 Codex 任务中说明：
 
-> 给这个任务启用 QQ 邮件回复，并发一封测试邮件。
+> 给这个任务启用邮件回复，并发一封测试邮件。
 
 收到邮件后直接回复，例如：
 
@@ -76,12 +71,12 @@ python3 scripts/install.py --account you@qq.com --register-mcp
 
 监听器读取配置账户经过认证的 **Sent Messages（已发送）** 文件夹，并同时核对启用时的基线、已发通知的 Message-ID 和邮件回复链。普通收件箱来信不会进入执行队列。已发送文件夹是信任边界，请勿将别人的邮件移入其中来绕过校验。
 
-邮件串 UUID 用于定位任务，不是身份认证。`From` 地址或 UUID 单独匹配也不能启动执行。QQ 改写发送邮件的 Message-ID 时，服务会先根据本账户的已发送副本校正对应关系。
+邮件串 UUID 用于定位任务，不是身份认证。`From` 地址或 UUID 单独匹配也不能启动执行。邮箱服务改写发送邮件的 Message-ID 时，适配器需根据本账户的已发送副本校正对应关系。
 
 ## 边界与故障处理
 
 - 电脑休眠、合盖或断网时，无法保证及时处理；恢复连接后会重新检查。
-- 目前只支持本机、单个配置 QQ 账户及明确启用的已有任务。
+- 目前支持本机、单个已适配邮箱账户及明确启用的已有任务。
 - 原生工具照常执行；需要审批、用户输入或未知客户端工具请求时会报告状态，不自动批准或伪造结果。
 - 若执行结果不确定，保留原 claim 和执行记录，不重新提交原指令。
 - `accepted` 表示 SMTP 已接收，不等于用户已看到邮件。SMTP 结果不确定时，需确认收件或明确授权可能重复的重发。
@@ -98,13 +93,7 @@ python3 -m venv .venv
 .venv/bin/python scripts/check_release.py
 ```
 
-常规测试使用合成邮件和临时目录，不连接真实邮箱或调用真实模型。原生集成测试需要显式指定本机 Codex 可执行文件：
-
-```sh
-QQ_SHARED_NATIVE_TESTS=1 \
-CODEX_QQ_MAIL_TEST_CLI='/Applications/Codex.app/Contents/Resources/codex' \
-.venv/bin/python -m unittest discover -s tests -p test_shared_executor.py
-```
+常规测试使用合成邮件和临时目录，不连接真实邮箱或调用真实模型。原生集成测试的命令见 [贡献说明](CONTRIBUTING.md)。
 
 它使用临时 Codex 配置和本地固定响应，验证同一任务上下文、工具执行、忙碌等待与丢失提交回执后的恢复。原生协议测试不能代替你的真实 App 和邮箱验收。
 
@@ -112,11 +101,12 @@ CODEX_QQ_MAIL_TEST_CLI='/Applications/Codex.app/Contents/Resources/codex' \
 scripts/                 收发服务、执行适配器、安装与发布检查
 tests/                   合成邮件、状态恢复和原生集成测试
 skills/qq-mail/SKILL.md   Codex 使用规则
-docs/install.md          安装、钥匙串、验收与卸载
+docs/install.md          通用安装与验收
+docs/providers/          各邮箱适配器的配置说明
 ```
 
 发布前还应扫描整个 Git 历史，并人工检查发布文件；`check_release.py` 只是基础保护。贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## License
 
-[MIT](LICENSE)。本项目是独立社区工具，并非 OpenAI 或腾讯的官方产品。
+[MIT](LICENSE)。本项目是独立社区工具，与 OpenAI 及邮箱服务商无隶属关系。
