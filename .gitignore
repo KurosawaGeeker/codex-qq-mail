@@ -1,0 +1,32 @@
+# Credentials and machine-local state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+config.json
+account-aliases.json
+*.sqlite*
+*.db
+*.log
+*.eml
+*.mbox
+*.sock
+*.pid
+# Runtime and generated artifacts
+.venv/
+runtime/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.state/
+runs/
+work/
+outputs/
+dist/
+build/
+*.zip
+.DS_Store
